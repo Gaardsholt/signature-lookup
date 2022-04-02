@@ -1,13 +1,15 @@
 using Microsoft.Extensions.Options;
 using Prometheus;
 using signature_lookup;
-using System.ComponentModel.DataAnnotations;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.ConfigureAppConfiguration((hostingContext, config) =>
 {
-    var secretPath = Environment.GetEnvironmentVariable("EXTRA_CONFIG") is string v && v.Length > 0 ? v : "/secrets/secrets";
+    var secretPath = Environment.GetEnvironmentVariable("EXTRA_CONFIG");
+    if (String.IsNullOrEmpty(secretPath))
+        return;
+
     if (File.Exists(secretPath))
         config.AddJsonFile(secretPath, optional: false, reloadOnChange: false);
 });
