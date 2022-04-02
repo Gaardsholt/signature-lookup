@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using Prometheus;
 using signature_lookup;
 using System.ComponentModel.DataAnnotations;
 
@@ -24,8 +25,13 @@ builder.Services.Configure<Credentials>(builder.Configuration.GetSection(nameof(
 builder.Services.AddTransient<IStartupFilter, SettingValidationStartupFilter>();
 builder.Services.AddSingleton<IValidatable>(resolver => resolver.GetRequiredService<IOptions<Credentials>>().Value);
 
+builder.Services.AddHealthChecks();
+
 
 var app = builder.Build();
+
+app.MapHealthChecks("/healthz");
+app.MapMetrics();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
