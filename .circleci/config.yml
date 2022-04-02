@@ -50,6 +50,7 @@ jobs:
             dotnet-sonarscanner begin /k:"Gaardsholt_$CIRCLE_PROJECT_REPONAME" /n:"$CIRCLE_PROJECT_REPONAME" /o:"gaardsholt-github" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.login="$SONAR" /d:sonar.exclusions="wwwroot\lib\**\*,"
             dotnet msbuild /t:Rebuild
             dotnet-sonarscanner end /d:sonar.login="$SONAR"
+  
   build-docker:
     executor: docker_image
     steps:
@@ -59,15 +60,8 @@ jobs:
       - docker-login
 
 workflows:
-  test-and-deploy:
+  release:
     jobs:
-      - test:
-          context: gaardsholt
-          filters:
-            tags:
-              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-            branches:
-              ignore: /.*/
       - build-docker:
           name: docker-build-push
           context: gaardsholt
@@ -76,8 +70,6 @@ workflows:
               only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
             branches:
               ignore: /.*/
-          requires:
-            - test
           post-steps:
             - docker-push
 
