@@ -15,3 +15,4 @@ Docker // Docker scripts and docker-compose files (in this example in 'Docker' d
 **/Dockerfile // Docker files
 **/docker-compose // Docker files
 *Test*
+app/*
