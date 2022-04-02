@@ -1,0 +1,96 @@
+version: 2.1
+
+executors:
+  docker_image:
+    docker:
+      - image: cimg/base:stable-18.04
+  dotnet:
+    docker:
+      - image: mcr.microsoft.com/dotnet/sdk:6.0
+
+
+commands:
+  docker-build:
+    steps:
+      - run:
+          name: "Docker: Building"
+          command: |
+            docker build -t gaardsholt/$CIRCLE_PROJECT_REPONAME:latest .
+  docker-login:
+    steps:
+      - run:
+          name: "Docker: Logging in"
+          command: docker login -u $DOCKER_USER -p $DOCKER_PASS
+  docker-push:
+    steps:
+      - run:
+          name: "Docker: Push"
+          command: |
+            docker tag gaardsholt/$CIRCLE_PROJECT_REPONAME:latest gaardsholt/$CIRCLE_PROJECT_REPONAME:${CIRCLE_TAG:1}
+            docker push --all-tags gaardsholt/$CIRCLE_PROJECT_REPONAME
+
+jobs:
+  test:
+    executor: dotnet
+    steps:
+      - checkout
+      - run:
+          name: Install Java for SonarCloud Scanner
+          command: |
+            mkdir -p /usr/share/man/man1
+            apt update -y
+            apt install default-jdk -y
+            apt install nodejs -y
+      - run:
+          name: Run SonarCloud Scanner
+          command: |
+            export PATH="$PATH:/root/.dotnet/tools"
+            dotnet tool install --global dotnet-sonarscanner
+            dotnet restore
+            dotnet-sonarscanner begin /k:"Gaardsholt_$CIRCLE_PROJECT_REPONAME" /n:"$CIRCLE_PROJECT_REPONAME" /o:"gaardsholt-github" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.login="$SONAR" /d:sonar.exclusions="wwwroot\lib\**\*,"
+            dotnet msbuild /t:Rebuild
+            dotnet-sonarscanner end /d:sonar.login="$SONAR"
+  build-docker:
+    executor: docker_image
+    steps:
+      - setup_remote_docker
+      - checkout
+      - docker-build
+      - docker-login
+
+workflows:
+  test-and-deploy:
+    jobs:
+      - test:
+          context: gaardsholt
+          filters:
+            tags:
+              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
+            branches:
+              ignore: /.*/
+      - build-docker:
+          name: docker-build-push
+          context: gaardsholt
+          filters:
+            tags:
+              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
+            branches:
+              ignore: /.*/
+          requires:
+            - test
+          post-steps:
+            - docker-push
+
+  test:
+    jobs:
+      - test:
+          context: gaardsholt
+          filters:
+            tags:
+              ignore: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
+      - build-docker:
+          name: docker-build
+          context: gaardsholt
+          filters:
+            tags:
+              ignore: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
