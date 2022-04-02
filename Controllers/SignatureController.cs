@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Exchange.WebServices.Data;
 using Microsoft.Extensions.Options;
 using Prometheus;
@@ -8,7 +7,7 @@ using System.ComponentModel.DataAnnotations;
 namespace signature_lookup.Controllers
 {
 
-    [Route("")]
+  	[Route("")]
     [ApiController]
     public class SignatureController : ControllerBase
     {
@@ -26,7 +25,7 @@ namespace signature_lookup.Controllers
 
 
 		[HttpGet("{mail}/{type?}")]
-		public ContentResult GetSignature([EmailAddress] string mail = "lasse.gaardsholt@bestseller.com", [RegularExpression(@"^(html|text)$", ErrorMessage = "Only 'html' or 'text' is allowed.")] string? type = "html")
+		public ContentResult GetSignature([EmailAddress] string mail, [RegularExpression(@"^(html|text)$", ErrorMessage = "Only 'html' or 'text' is allowed.")] string? type = "html")
 		{
 			SignatureRequests.Inc();
 
